@@ -57,7 +57,8 @@ PaperClaw/
 │       └── examples/             # 示例数据（DeepONet评分报告）
 │
 └── [项目文档]
-    ├── README.md                 # 本文档
+    ├── README.md                 # 本文档（中文）
+    ├── README_EN.md              # 英文文档
     ├── INSTALLATION.md           # 安装指南
     ├── CONFIGURATION.md          # 配置说明
     └── QUICKSTART.md             # 快速入门
@@ -148,7 +149,7 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 
 ---
 
-## � 评分体系
+## 🤖 评分体系
 
 ### 四维基础评分 + Date-Citation 影响力评分
 
