@@ -40,6 +40,12 @@ python skills/daily-search/scripts/daily_paper_search.py
 # 精选 5 篇论文（默认 3 篇）
 python skills/daily-search/scripts/daily_paper_search.py --top 5
 
+# 医学多源模式（默认）
+python skills/daily-search/scripts/daily_paper_search.py --search-mode medical --top 5
+
+# 指定数据源
+python skills/daily-search/scripts/daily_paper_search.py --search-mode medical --sources pubmed,europe_pmc,biorxiv,medrxiv,crossref,openalex,semantic_scholar
+
 # 仅搜索，不下载 PDF
 python skills/daily-search/scripts/daily_paper_search.py --skip-download
 
@@ -145,7 +151,7 @@ crontab -e
 
 ### 三层去重策略
 
-1. **搜索结果内部去重** (`search_arxiv.py`)
+1. **搜索结果内部去重**（medical模式：多源去重；arxiv模式：`search_arxiv.py`）
    - arXiv ID 去重
    - 标准化标题去重（保留版本标识符如 ++、-2）
    - 排除不相关领域
