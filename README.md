@@ -92,6 +92,12 @@ python agents/surrogate-modeling/skills/medical-literature-search/scripts/search
 # 每日任务切换为医学多源模式
 python agents/surrogate-modeling/skills/daily-search/scripts/daily_paper_search.py   --search-mode medical --top 3 --dry-run
 ```
+### 推荐四维评分体系
+
+1. **生物学有效性**：是否符合生物机制与实验事实
+2. **临床/转化价值**：对诊断、预后、治疗或药物开发的潜在影响
+3. **方法学创新与可解释性**：创新程度、可解释性与可复现性
+4. **数据与评测严谨性**：数据质量、基准全面性、统计显著性
 
 ### 一键生成医学生信专属 Agent
 
