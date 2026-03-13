@@ -2,7 +2,7 @@
 """
 每日论文检索与筛选脚本
 功能：
-1. 批量搜索 arXiv 论文
+1. 批量搜索医学多源论文（默认）或 arXiv 论文
 2. 与 evaluated_papers.json 去重
 3. 相关性排序，选 Top N 待评估
 4. 下载 PDF
@@ -10,7 +10,7 @@
 6. 发送每日检索摘要如流消息
 
 使用方法:
-  python daily_paper_search.py                    # 完整流程
+  python daily_paper_search.py                    # 完整流程（默认医学多源）
   python daily_paper_search.py --skip-download    # 跳过PDF下载
   python daily_paper_search.py --dry-run          # 仅搜索，不下载不发送
 """
@@ -27,9 +27,11 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 SKILLS_DIR = SCRIPT_DIR.parent.parent
 sys.path.insert(0, str(SKILLS_DIR / 'arxiv-search' / 'scripts'))
+sys.path.insert(0, str(SKILLS_DIR / 'medical-literature-search' / 'scripts'))
 sys.path.insert(0, '/home/gem/.openclaw/skills/so-send-message/scripts')
 
 from search_arxiv import batch_search, deduplicate_papers, score_paper_relevance
+from search_medical_literature import batch_search_medical, DEFAULT_STRATEGY, build_queries
 
 
 class DailyPaperSearcher:
@@ -60,7 +62,7 @@ class DailyPaperSearcher:
             with open(self.evaluated_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            evaluated_ids = {p.get('arxiv_id', '') for p in data.get('papers', [])}
+            evaluated_ids = {(p.get('arxiv_id') or p.get('paper_id') or p.get('doi') or '') for p in data.get('papers', [])}
             evaluated_titles = {p.get('title', '').lower().strip() for p in data.get('papers', [])}
             
             print(f"✅ 已加载 {len(evaluated_ids)} 篇已评估论文用于去重")
@@ -75,7 +77,7 @@ class DailyPaperSearcher:
         skipped = []
         
         for paper in papers:
-            arxiv_id = paper.get('arxiv_id', '')
+            arxiv_id = paper.get('arxiv_id', '') or paper.get('paper_id', '') or paper.get('doi', '')
             title = paper.get('title', '').lower().strip()
             
             if arxiv_id in evaluated_ids:
@@ -122,6 +124,10 @@ class DailyPaperSearcher:
         
         metadata = {
             "arxiv_id": paper.get('arxiv_id', ''),
+            "paper_id": paper.get('paper_id', ''),
+            "source": paper.get('source', 'arxiv'),
+            "doi": paper.get('doi', ''),
+            "url": paper.get('url', ''),
             "title": paper.get('title', ''),
             "short_title": short_title,
             "authors": paper.get('authors', []),
@@ -205,6 +211,9 @@ class DailyPaperSearcher:
             tasks.append({
                 "priority": i,
                 "arxiv_id": paper.get('arxiv_id'),
+                "paper_id": paper.get('paper_id'),
+                "source": paper.get('source', 'arxiv'),
+                "doi": paper.get('doi', ''),
                 "title": paper.get('title'),
                 "short_title": short_title,
                 "paper_dir": str(self.papers_dir / short_title),
@@ -236,7 +245,9 @@ class DailyPaperSearcher:
         for i, paper in enumerate(selected_papers, 1):
             relevance = paper.get('relevance_score', 0)
             message += f"\n{i}. **{paper['title'][:60]}...**\n"
-            message += f"   arXiv: {paper.get('arxiv_id', 'N/A')} | 相关性: {relevance}分\n"
+            source = paper.get('source', 'arxiv')
+            ref_id = paper.get('arxiv_id') or paper.get('paper_id') or paper.get('doi') or 'N/A'
+            message += f"   来源: {source} | ID: {ref_id} | 相关性: {relevance}分\n"
         
         message += f"""
 📎 **后续操作**:
@@ -279,25 +290,40 @@ class DailyPaperSearcher:
             print(f"❌ 发送如流消息异常: {e}")
             return False
     
-    def run(self, top_n=3, skip_download=False, dry_run=False):
+    def run(self, top_n=3, skip_download=False, dry_run=False, search_mode="medical", sources=None):
         """执行每日检索流程"""
         print("=" * 60)
         print(f"📚 每日论文检索任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
-        
+
         # 1. 加载已评估论文（用于去重）
         print("\n?? 步骤 1/6: 加载已评估论文...")
         evaluated_ids, evaluated_titles = self.load_evaluated_papers()
-        
+
         # 2. 批量搜索
-        print("\n🔍 步骤 2/6: 批量搜索 arXiv...")
-        all_papers = batch_search(max_results_per_query=30, delay=3)
-        
-        # 3. 搜索脚本内部去重
-        print("\n🔄 步骤 3/6: 搜索结果去重...")
-        unique_papers, search_dups, excluded = deduplicate_papers(all_papers)
-        print(f"   搜索去重后: {len(unique_papers)} 篇")
-        
+        if search_mode == "arxiv":
+            print("\n🔍 步骤 2/6: 批量搜索 arXiv...")
+            all_papers = batch_search(max_results_per_query=30, delay=3)
+
+            # 3. 搜索脚本内部去重
+            print("\n🔄 步骤 3/6: 搜索结果去重...")
+            unique_papers, _search_dups, _excluded = deduplicate_papers(all_papers)
+            print(f"   搜索去重后: {len(unique_papers)} 篇")
+        else:
+            medical_sources = sources or ["pubmed", "europe_pmc", "biorxiv", "medrxiv", "crossref", "openalex", "semantic_scholar"]
+            print(f"\n🔍 步骤 2/6: 医学多源检索 ({', '.join(medical_sources)})...")
+            unique_papers = batch_search_medical(
+                queries=build_queries(DEFAULT_STRATEGY),
+                per_source_limit=15,
+                delay_sec=0.5,
+                sources=medical_sources,
+            )
+            all_papers = unique_papers
+
+            # 3. 多源检索内部已去重
+            print("\n🔄 步骤 3/6: 多源结果去重...")
+            print(f"   搜索去重后: {len(unique_papers)} 篇")
+
         # 4. 与已评估数据库去重
         print("\n🔄 步骤 4/6: 与已评估数据库去重...")
         new_papers, skipped_evaluated = self.filter_against_evaluated(
@@ -305,60 +331,57 @@ class DailyPaperSearcher:
         )
         print(f"   跳过已评估: {len(skipped_evaluated)} 篇")
         print(f"   新论文数量: {len(new_papers)} 篇")
-        
+
         if not new_papers:
             print("\n⚠️  今日无新论文，所有搜索结果均已评估")
             return
-        
+
         # 5. 相关性排序，选 Top N
         print(f"\n🏆 步骤 5/6: 相关性排序，选择 Top {top_n}...")
-        for paper in new_papers:
-            paper['relevance_score'] = score_paper_relevance(paper)
-        
-        new_papers.sort(key=lambda x: x['relevance_score'], reverse=True)
+        if search_mode == "arxiv":
+            for paper in new_papers:
+                paper["relevance_score"] = score_paper_relevance(paper)
+
+        new_papers.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
         selected_papers = new_papers[:top_n]
-        
+
         for i, paper in enumerate(selected_papers, 1):
-            print(f"   {i}. [{paper['relevance_score']}分] {paper['title'][:55]}...")
-        
+            print(f"   {i}. [{paper.get('relevance_score', 0)}分] {paper['title'][:55]}...")
+
         # 6. 下载 PDF 并创建元数据
         if not skip_download and not dry_run:
             print(f"\n📥 步骤 6/6: 下载 PDF 并创建元数据...")
             for paper in selected_papers:
-                short_title = self.generate_short_title(paper['title'])
+                short_title = self.generate_short_title(paper["title"])
                 paper_dir = self.papers_dir / short_title
-                
+
                 pdf_path = self.download_pdf(paper, paper_dir)
                 self.create_paper_metadata(paper, pdf_path)
         else:
             print(f"\n⏭️  步骤 6/6: 跳过 PDF 下载 (skip_download={skip_download}, dry_run={dry_run})")
-        
-        # 保存搜索日志
+
         search_stats = {
-            'total_searched': len(all_papers),
-            'after_dedup': len(unique_papers),
-            'skipped_evaluated': len(skipped_evaluated),
-            'selected_count': len(selected_papers)
+            "total_searched": len(all_papers),
+            "after_dedup": len(unique_papers),
+            "skipped_evaluated": len(skipped_evaluated),
+            "selected_count": len(selected_papers),
         }
         self.save_search_log(unique_papers, selected_papers, skipped_evaluated)
-        
-        # 生成待评估任务清单
-        task_path, tasks = self.generate_evaluation_task(selected_papers)
-        
-        # 发送每日摘要
+
+        task_path, _tasks = self.generate_evaluation_task(selected_papers)
+
         print("\n📨 发送每日检索摘要...")
         self.send_daily_summary(search_stats, selected_papers, dry_run)
-        
+
         print("\n" + "=" * 60)
         print("✅ 每日论文检索任务完成！")
         print("=" * 60)
-        print(f"\n📋 后续步骤:")
+        print("\n📋 后续步骤:")
         print(f"   1. 查看待评估清单: {task_path}")
-        print(f"   2. 对每篇论文执行 paper-review 技能进行评估")
-        print(f"   3. 评估完成后使用 update_registry.py 更新数据库")
-        
-        return selected_papers
+        print("   2. 对每篇论文执行 paper-review 技能进行评估")
+        print("   3. 评估完成后使用 update_registry.py 更新数据库")
 
+        return selected_papers
 
 def main():
     parser = argparse.ArgumentParser(description='每日论文检索与筛选')
@@ -366,14 +389,19 @@ def main():
     parser.add_argument('--skip-download', action='store_true', help='跳过PDF下载')
     parser.add_argument('--dry-run', action='store_true', help='仅搜索，不下载不发送')
     parser.add_argument('--workspace', type=str, help='工作空间路径')
+    parser.add_argument('--search-mode', choices=['medical', 'arxiv'], default='medical', help='检索模式（默认medical）')
+    parser.add_argument('--sources', type=str, default='pubmed,europe_pmc,biorxiv,medrxiv,crossref,openalex,semantic_scholar', help='medical模式下的数据源列表')
     
     args = parser.parse_args()
     
     searcher = DailyPaperSearcher(workspace_path=args.workspace)
+    source_list = [s.strip() for s in args.sources.split(',') if s.strip()]
     searcher.run(
         top_n=args.top,
         skip_download=args.skip_download,
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
+        search_mode=args.search_mode,
+        sources=source_list
     )
 
 

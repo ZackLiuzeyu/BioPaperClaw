@@ -24,12 +24,74 @@ PaperClaw 是一个**医学与生物信息学论文专家智能体框架**：
 
 ## 🧬 医学 + 生物信息学默认配置
 
+### 推荐数据源（医学场景必备）
+
+> 医学场景不应只依赖 arXiv，默认采用“医学数据库 + 预印本 + 引用网络”的组合检索。
+
+**必加数据源**：
+- **PubMed / Entrez API**：医学主检索入口（MeSH + 临床研究类型过滤）
+- **Europe PMC**：摘要与开放全文获取更友好，补充生命科学覆盖
+- **bioRxiv / medRxiv**：追踪热点预印本
+- **Crossref**：补 DOI、期刊、出版日期、ISSN 等元数据
+- **OpenAlex / Semantic Scholar**：补引用网络、影响力与主题关系
+
 ### 推荐检索主题
 
 - 生物信息学基础模型：`protein language model`, `genomic foundation model`, `single-cell foundation model`
 - 临床与转化方向：`clinical prediction model`, `electronic health record representation learning`
 - 药物研发方向：`drug-target interaction`, `de novo drug design`, `multimodal drug discovery`
 
+### 医学评审优先关注（证据导向）
+
+在医学场景中，默认优先回答以下问题，再考虑模型结构新颖性：
+- 研究类型：基础研究 / 转化研究 / 临床研究 / 系统综述
+- 研究设计：RCT、cohort、case-control、meta-analysis 等
+- 证据来源：人群研究、动物实验、细胞实验、数据库挖掘
+- 证据质量：样本量、偏倚风险、期刊与证据等级
+
+### 医学专用评分模板（双模板）
+
+**A. 临床医学论文模板（7维）**
+- 临床问题重要性
+- 研究设计强度
+- 样本量与代表性
+- 偏倚风险
+- 统计分析合理性
+- 临床可推广性
+- 指南/实践价值
+
+**B. 生物信息学论文模板（7维）**
+- 数据来源可靠性
+- 队列规模与外部验证
+- 生物学解释力度
+- 方法新颖性
+- 可复现性（代码/流程）
+- 过拟合风险
+- 转化潜力
+
+**专属扣分项（示例）**
+- 单数据库且无外部验证
+- ROC/AUC 高但机制解释弱
+- 仅分子对接/MD，无细胞或组织验证
+- 生存分析显著但混杂校正不足
+- 泛癌分析堆砌但主线不聚焦
+
+### 已实现：医学多源检索脚本（可直接运行）
+
+### 检索策略升级（三层）
+
+- **主题词层**：自由词 + MeSH + 同义词扩展（如 AKI / acute kidney injury）
+- **研究类型层**：Clinical Trial、Review、Meta-analysis、Cohort、Case-control、Practice guideline
+- **排除词层**：veterinary、dentistry、imaging-only、pregnancy（按课题可选）
+- **生信方法标签**：WGCNA、DEGs、LASSO/Cox、GSEA/GSVA/ssGSEA、CIBERSORT、scRNA-seq、CellChat/Monocle/SCENIC、docking/MD simulation、pan-cancer、external validation
+
+```bash
+# 多源检索（默认含 PubMed/Europe PMC/bioRxiv/medRxiv/Crossref/OpenAlex/Semantic Scholar）
+python agents/surrogate-modeling/skills/medical-literature-search/scripts/search_medical_literature.py   --batch --limit 8 --top 20
+
+# 每日任务切换为医学多源模式
+python agents/surrogate-modeling/skills/daily-search/scripts/daily_paper_search.py   --search-mode medical --top 3 --dry-run
+```
 ### 推荐四维评分体系
 
 1. **生物学有效性**：是否符合生物机制与实验事实
@@ -78,8 +140,9 @@ PaperClaw/
 │       │   ├── models.json       # LLM 配置
 │       │   └── schedules.json    # 定时任务（每日20:00 + 周日10:00）
 │       ├── skills/               # 5个核心技能
-│       │   ├── arxiv-search/     # arXiv 批量搜索 + 去重
-│       │   ├── semantic-scholar/ # 引用数据 API
+│       │   ├── medical-literature-search/ # 医学多源检索（PubMed/Europe PMC/...）
+│       │   ├── arxiv-search/     # 兼容旧流程的检索技能
+│       │   ├── semantic-scholar/ # 引用数据 API（可与 OpenAlex/Crossref 联用）
 │       │   ├── paper-review/     # 论文评估 + 安全写入
 │       │   ├── daily-search/     # 每日自动检索
 │       │   └── weekly-report/    # 周报生成
@@ -174,21 +237,22 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 
 | 功能 | 说明 | 触发方式 |
 |------|------|---------|
-| 🔍 **每日检索** | 批量搜索 arXiv，自动去重，精选 Top 3 | 每天 20:00 (Asia/Singapore) |
-| 📝 **深度总结** | 回答 10 个核心问题，生成 summary.md | 检索后自动执行 |
-| 📊 **四维评分** | 领域定制维度 + Date-Citation 权衡 | 总结后自动执行 |
+| 🔍 **每日检索** | 聚合 PubMed/Europe PMC/bioRxiv/medRxiv，自动去重，精选 Top 3 | 每天 20:00 (Asia/Singapore) |
+| 📝 **医学阅读卡片** | 按固定医学总结模板输出（含答辩话术/开题引用价值） | 检索后自动执行 |
+| 📊 **医学多维评分** | 临床模板/生信模板 + 扣分项 + Date-Citation 权衡 | 总结后自动执行 |
 | 📰 **周报生成** | Top 3 精选论文报告，推送通知 | 每周日 10:00 |
 
 ---
 
 ## 🤖 评分体系
 
-### 四维基础评分 + Date-Citation 影响力评分
+### 医学多维基础评分 + Date-Citation 影响力评分（含扣分项）
 
 ```
-最终评分 = 四维基础评分 × 0.9 + 影响力评分 × 0.1
+最终评分 = 调整后基础评分 × 0.9 + 影响力评分 × 0.1
 
-四维基础评分 = (维度1 + 维度2 + 维度3 + 维度4) / 4
+基础评分 = 所有维度均分（临床7维/生信7维）
+调整后基础评分 = 基础评分 - 扣分项
 ```
 
 **Date-Citation 调整因子**（示例，可领域定制）：
@@ -197,10 +261,9 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 - >24个月 + 引用≥200：+0.5
 - 引用密度≥10次/月：额外 +0.2
 
-**领域定制评分维度示例**：
-- **Scientific ML**（默认）：工程应用、架构创新、理论贡献、可靠性
-- **生物信息学**：生物学合理性、计算可扩展性、基准质量、转化潜力
-- **计算机视觉**：架构创新、基准性能、泛化能力、实用性
+**医学模板示例**：
+- **临床医学模板**：临床问题重要性、研究设计强度、样本代表性、偏倚风险、统计合理性、可推广性、指南价值
+- **生物信息学模板**：数据可靠性、外部验证、生物解释、方法新颖性、可复现性、过拟合风险、转化潜力
 
 详见 `skills/paper-expert-generator/references/domain-adaptation-guide.md`
 
@@ -211,8 +274,8 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 参考 `skills/paper-expert-generator/SKILL.md` 的 8 步工作流：
 
 1. **领域访谈** — 收集研究域、子方向、方法论、排除词
-2. **关键词库** — 构建 arXiv `ti:` 查询
-3. **评分维度** — 设计4个领域专属评分维度
+2. **关键词库** — 构建 PubMed/Europe PMC + bioRxiv/medRxiv 组合查询
+3. **评分维度** — 在临床模板/生信模板中选择并细化7个维度 + 扣分项
 4. **脚手架** — 运行 `init_domain_agent.py`
 5. **写 AGENT.md** — 填充角色定位、关键词、4大任务
 6. **改 SKILL.md** — 适配关键词列表和评分维度
@@ -240,7 +303,7 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 ### v1.0.0 (2026-03-01) - 初始版本
 
 - ✅ arXiv 论文自动检索
-- ✅ 论文深度总结（10个问题）
+- ✅ 医学阅读卡片式总结（固定栏目）
 - ✅ 四维评分系统
 - ✅ 周报自动生成
 
