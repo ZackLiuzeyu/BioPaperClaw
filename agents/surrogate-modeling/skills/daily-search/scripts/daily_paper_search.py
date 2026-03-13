@@ -52,6 +52,36 @@ class DailyPaperSearcher:
         
         # 如流消息接收人
         self.recipients = ["guhaohao"]
+
+    @staticmethod
+    def normalize_identifier(identifier):
+        """标准化论文标识符，便于跨来源去重比较"""
+        if not identifier:
+            return ""
+
+        value = str(identifier).strip().lower()
+
+        # DOI 归一化：兼容 doi: 前缀及 doi.org URL
+        if value.startswith("doi:"):
+            value = value[4:].strip()
+        elif "doi.org/" in value:
+            value = value.split("doi.org/", 1)[1].strip()
+
+        # arXiv 归一化：兼容 arxiv: 前缀
+        if value.startswith("arxiv:"):
+            value = value[6:].strip()
+
+        return value
+
+    def collect_paper_identifiers(self, paper):
+        """收集论文全部可用标识符（arXiv/paper_id/DOI）"""
+        identifiers = set()
+        for key in ("arxiv_id", "paper_id", "doi"):
+            normalized = self.normalize_identifier(paper.get(key, ""))
+            if normalized:
+                identifiers.add(normalized)
+
+        return identifiers
         
     def load_evaluated_papers(self):
         """加载已评估论文列表（用于去重）"""
@@ -62,7 +92,9 @@ class DailyPaperSearcher:
             with open(self.evaluated_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            evaluated_ids = {(p.get('arxiv_id') or p.get('paper_id') or p.get('doi') or '') for p in data.get('papers', [])}
+            evaluated_ids = set()
+            for paper in data.get('papers', []):
+                evaluated_ids.update(self.collect_paper_identifiers(paper))
             evaluated_titles = {p.get('title', '').lower().strip() for p in data.get('papers', [])}
             
             print(f"✅ 已加载 {len(evaluated_ids)} 篇已评估论文用于去重")
@@ -77,11 +109,12 @@ class DailyPaperSearcher:
         skipped = []
         
         for paper in papers:
-            arxiv_id = paper.get('arxiv_id', '') or paper.get('paper_id', '') or paper.get('doi', '')
+            paper_identifiers = self.collect_paper_identifiers(paper)
             title = paper.get('title', '').lower().strip()
-            
-            if arxiv_id in evaluated_ids:
-                skipped.append({'paper': paper, 'reason': f'ID已评估: {arxiv_id}'})
+
+            matched_id = next((pid for pid in sorted(paper_identifiers) if pid in evaluated_ids), None)
+            if matched_id:
+                skipped.append({'paper': paper, 'reason': f'ID已评估: {matched_id}'})
                 continue
             
             if title in evaluated_titles:
