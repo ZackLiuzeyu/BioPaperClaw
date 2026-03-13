@@ -1,7 +1,7 @@
-# PaperClaw - Domain Paper Expert Agent Generator Framework
+# BioPaperClaw - Medical & Bioinformatics Paper Expert Agent Framework
 
-> An OpenClaw-based agent framework for automated paper search, summarization, and evaluation.
-> Generate specialized paper expert agents for any research domain.
+> An OpenClaw-based framework for medical and bioinformatics paper retrieval, summary cards, and evaluation.
+> Includes biomedical defaults for data sources, retrieval strategy, and scoring templates.
 
 <div align="center">
 
@@ -13,11 +13,20 @@
 
 [中文](README.md) | [English](README_EN.md)
 
+## ℹ️ About
+
+**BioPaperClaw** is built for medical and bioinformatics literature workflows with:
+- Multi-source retrieval (PubMed, Europe PMC, bioRxiv, medRxiv, Crossref, OpenAlex, Semantic Scholar)
+- 3-layer retrieval strategy (topic terms + study/method filters + exclusion terms)
+- Medical dual scoring templates (clinical / bioinformatics) with deduction rules
+- A fixed 12-section medical reading card for summary output (including defense one-liner and proposal/review citation value)
+
+
 ---
 
 ## 🎯 Project Overview
 
-PaperClaw is a **domain-specific paper expert agent generator framework**:
+BioPaperClaw is a **medical & bioinformatics paper expert agent framework**:
 
 - **If you have a specific research domain** → Use `skills/paper-expert-generator/` to quickly create your own agent
 - **If you want to understand how it works** → Check `agents/surrogate-modeling/` as a complete example
@@ -27,7 +36,7 @@ PaperClaw is a **domain-specific paper expert agent generator framework**:
 ## 📁 Directory Structure
 
 ```
-PaperClaw/
+BioPaperClaw/
 ├── skills/
 │   └── paper-expert-generator/     # Skill: Generate domain paper expert agents
 │       ├── SKILL.md               # Usage guide (8-step workflow)
@@ -108,7 +117,7 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PaperClaw Agent                          │
+│                  BioPaperClaw Agent                         │
 │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────┐ │
 │  │daily-search│ │arxiv-search│ │paper-review│ │weekly-rpt│ │
 │  └────────────┘ └────────────┘ └────────────┘ └──────────┘ │
@@ -144,50 +153,47 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 
 | Feature | Description | Trigger |
 |---------|-------------|---------|
-| 🔍 **Daily Search** | Batch arXiv search, auto-dedup, Top 3 selection | Daily 20:00 (Asia/Singapore) |
-| 📝 **Deep Summary** | Answer 10 core questions, generate summary.md | Auto after search |
-| 📊 **4D Scoring** | Domain-customized dimensions + Date-Citation weighting | Auto after summary |
+| 🔍 **Daily Search** | Multi-source medical search, auto-dedup, Top 3 selection | Daily 20:00 (Asia/Singapore) |
+| 📝 **Medical Reading Card** | Fixed 12-section summary card output | Auto after search |
+| 📊 **Medical Multi-Dimensional Scoring** | Clinical/Bioinformatics templates + deductions + Date-Citation weighting | Auto after summary |
 | 📰 **Weekly Report** | Top 3 curated papers, push notification | Every Sunday 10:00 |
 
 ---
 
 ## 📐 Scoring System
 
-### 4D Base Score + Date-Citation Impact Score
+### Medical Multi-Dimensional Base Score + Date-Citation Impact Score
 
 ```
-Final Score = Base Score × 0.9 + Impact Score × 0.1
+Final Score = Adjusted Base Score × 0.9 + Impact Score × 0.1
 
-Base Score = (Dimension1 + Dimension2 + Dimension3 + Dimension4) / 4
+Base Score = mean(all dimensions)
+Adjusted Base Score = Base Score - deduction penalties
 ```
 
-**Date-Citation Adjustment Factors** (example, customizable per domain):
-- ≤3 months new papers: +0.2
-- 3-24 months + citations≥50: +0.5
-- u003e24 months + citations≥200: +0.5
-- Citation density≥10/month: extra +0.2
+**Medical dual templates**:
+- **Clinical template (7 dims)**: Clinical Importance, Design Strength, Sample Representativeness, Bias Risk, Statistical Rigor, Generalizability, Guideline/Practice Value
+- **Bioinformatics template (7 dims)**: Data Reliability, External Validation, Biological Interpretability, Method Novelty, Reproducibility, Overfitting Risk, Translational Potential
 
-**Domain-Customized Scoring Dimension Examples**:
-- **Scientific ML** (default): Engineering Value, Architecture Innovation, Theoretical Contribution, Reliability
-- **Bioinformatics**: Biological Validity, Computational Scalability, Benchmark Quality, Translational Potential
-- **Computer Vision**: Architecture Innovation, Benchmark Performance, Generalization, Practical Utility
-
-See `skills/paper-expert-generator/references/domain-adaptation-guide.md` for details.
-
----
+**Common medical deductions** (example):
+- Single database without external validation
+- Good ROC/AUC but weak mechanism evidence
+- Docking/MD only without wet-lab or tissue-level validation
+- Significant survival analysis with insufficient confounder adjustment
+- Pan-cancer analysis with weakly focused storyline
 
 ## 🛠️ Creating a New Domain Agent
 
 Follow the 8-step workflow in `skills/paper-expert-generator/SKILL.md`:
 
 1. **Domain Interview** — Collect research domain, sub-directions, methods, exclusions
-2. **Keyword Library** — Build arXiv `ti:` queries
-3. **Scoring Dimensions** — Design 4 domain-specific scoring dimensions
+2. **Keyword Library** — Build a PubMed/Europe PMC + bioRxiv/medRxiv combined retrieval strategy
+3. **Scoring Dimensions** — Choose clinical/bioinformatics template and refine 7 dimensions + deductions
 4. **Scaffolding** — Run `init_domain_agent.py`
-5. **Write AGENT.md** — Fill in role definition, keywords, 4 core tasks
+5. **Write AGENT.md** — Fill in role definition, keywords, and core tasks
 6. **Adapt SKILL.md** — Customize keyword list and scoring dimensions
 7. **Configure Model** — Input API credentials
-8. **Validate u0026 Deliver** — Checklist confirmation
+8. **Validate & Deliver** — Checklist confirmation
 
 ---
 
@@ -210,8 +216,8 @@ Follow the 8-step workflow in `skills/paper-expert-generator/SKILL.md`:
 ### v1.0.0 (2026-03-01) - Initial Release
 
 - ✅ arXiv paper automated search
-- ✅ Paper deep summarization (10 questions)
-- ✅ 4D scoring system
+- ✅ Medical reading-card summarization (fixed 12 sections)
+- ✅ Multi-dimensional scoring system (medical dual templates)
 - ✅ Weekly report auto-generation
 
 ---

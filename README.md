@@ -1,4 +1,4 @@
-# PaperClaw - 医学与生物信息学论文专属工具
+# BioPaperClaw - 医学与生物信息学论文专属工具
 
 > 基于 OpenClaw 的医学论文与生物信息学论文自动检索、总结、评估智能体框架。
 > 提供面向生物医药场景的默认关键词、评估维度与落地流程。
@@ -12,9 +12,18 @@
 </div>
 
 [中文](README.md) | [English](README_EN.md)
+
+## ℹ️ About
+
+**BioPaperClaw** 是一个面向医学与生物信息学研究团队的论文专家智能体框架：
+- 支持 PubMed / Europe PMC / bioRxiv / medRxiv / Crossref / OpenAlex / Semantic Scholar 多源检索
+- 支持主题词+研究类型+排除词三层检索策略与生信方法学标签
+- 支持临床/生信双模板评分与医学专属扣分项
+- 支持固定12栏医学阅读卡片输出（含答辩话术与开题/综述引用价值）
+
 ## 🎯 项目定位
 
-PaperClaw 是一个**医学与生物信息学论文专家智能体框架**：
+BioPaperClaw 是一个**医学与生物信息学论文专家智能体框架**：
 
 - **如果你要追踪医学/生信论文** → 使用本文档中的默认配置快速落地
 - **如果你要扩展子领域**（如多组学、临床 NLP、药物发现）→ 使用 `skills/paper-expert-generator/` 继续定制
@@ -92,12 +101,6 @@ python agents/surrogate-modeling/skills/medical-literature-search/scripts/search
 # 每日任务切换为医学多源模式
 python agents/surrogate-modeling/skills/daily-search/scripts/daily_paper_search.py   --search-mode medical --top 3 --dry-run
 ```
-### 推荐四维评分体系
-
-1. **生物学有效性**：是否符合生物机制与实验事实
-2. **临床/转化价值**：对诊断、预后、治疗或药物开发的潜在影响
-3. **方法学创新与可解释性**：创新程度、可解释性与可复现性
-4. **数据与评测严谨性**：数据质量、基准全面性、统计显著性
 
 ### 一键生成医学生信专属 Agent
 
@@ -119,7 +122,7 @@ python skills/paper-expert-generator/scripts/init_domain_agent.py \
 ## 📁 目录结构
 
 ```
-PaperClaw/
+BioPaperClaw/
 ├── skills/
 │   └── paper-expert-generator/     # Skill：生成领域论文专家智能体
 │       ├── SKILL.md               # 使用指南（8步工作流）
@@ -201,7 +204,7 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PaperClaw Agent                          │
+│                  BioPaperClaw Agent                         │
 │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────┐ │
 │  │daily-search│ │arxiv-search│ │paper-review│ │weekly-rpt│ │
 │  └────────────┘ └────────────┘ └────────────┘ └──────────┘ │
@@ -304,7 +307,7 @@ python skills/weekly-report/scripts/generate_weekly_report_v2.py
 
 - ✅ arXiv 论文自动检索
 - ✅ 医学阅读卡片式总结（固定栏目）
-- ✅ 四维评分系统
+- ✅ 多维评分系统（当前医学版为双模板7维）
 - ✅ 周报自动生成
 
 ---
