@@ -1,7 +1,7 @@
-# PaperClaw - 领域论文专家智能体生成框架
+# PaperClaw - 医学与生物信息学论文专属工具
 
-> 基于 OpenClaw 的论文自动检索、总结、评估智能体框架。
-> 可为任意研究领域生成专门的论文专家智能体。
+> 基于 OpenClaw 的医学论文与生物信息学论文自动检索、总结、评估智能体框架。
+> 提供面向生物医药场景的默认关键词、评估维度与落地流程。
 
 <div align="center">
 
@@ -14,10 +14,43 @@
 [中文](README.md) | [English](README_EN.md)
 ## 🎯 项目定位
 
-PaperClaw 是一个**领域论文专家智能体生成框架**：
+PaperClaw 是一个**医学与生物信息学论文专家智能体框架**：
 
-- **如果你已有明确的研究领域** → 使用 `skills/paper-expert-generator/` 快速生成专属智能体
-- **如果你想了解如何工作** → 查看 `agents/surrogate-modeling/` 作为完整示例
+- **如果你要追踪医学/生信论文** → 使用本文档中的默认配置快速落地
+- **如果你要扩展子领域**（如多组学、临床 NLP、药物发现）→ 使用 `skills/paper-expert-generator/` 继续定制
+- **如果你想了解工作机制** → 查看 `agents/surrogate-modeling/` 作为完整示例
+
+---
+
+## 🧬 医学 + 生物信息学默认配置
+
+### 推荐检索主题
+
+- 生物信息学基础模型：`protein language model`, `genomic foundation model`, `single-cell foundation model`
+- 临床与转化方向：`clinical prediction model`, `electronic health record representation learning`
+- 药物研发方向：`drug-target interaction`, `de novo drug design`, `multimodal drug discovery`
+
+### 推荐四维评分体系
+
+1. **生物学有效性**：是否符合生物机制与实验事实
+2. **临床/转化价值**：对诊断、预后、治疗或药物开发的潜在影响
+3. **方法学创新与可解释性**：创新程度、可解释性与可复现性
+4. **数据与评测严谨性**：数据质量、基准全面性、统计显著性
+
+### 一键生成医学生信专属 Agent
+
+```bash
+python skills/paper-expert-generator/scripts/init_domain_agent.py \
+  --domain "med-bioinformatics" \
+  --output ~/agents/med-bioinformatics \
+  --paperclaw-skills ./skills
+```
+
+生成后，优先填写 `agent/AGENT.md` 中以下内容：
+
+- 细分方向（如肿瘤组学、蛋白结构预测、临床风险预测）
+- 排除关键词（如纯化学合成、与医学无关的通用推荐系统）
+- 周报接收对象（PI/课题组/医工联合团队）
 
 ---
 
