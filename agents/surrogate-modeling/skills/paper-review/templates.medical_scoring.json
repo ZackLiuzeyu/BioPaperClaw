@@ -1,0 +1,60 @@
+{
+  "clinical_template": {
+    "name": "clinical_medicine_v1",
+    "dimensions": [
+      "clinical_problem_importance",
+      "study_design_strength",
+      "sample_size_representativeness",
+      "risk_of_bias",
+      "statistical_rigor",
+      "clinical_generalizability",
+      "guideline_practice_value"
+    ],
+    "deductions": [
+      {
+        "rule": "single_database_no_external_validation",
+        "description": "仅单数据库且无外部验证",
+        "penalty": 0.5
+      },
+      {
+        "rule": "survival_significant_without_confounder_adjustment",
+        "description": "生存分析显著但混杂校正不足",
+        "penalty": 0.5
+      }
+    ]
+  },
+  "bioinformatics_template": {
+    "name": "bioinformatics_v1",
+    "dimensions": [
+      "data_source_reliability",
+      "cohort_scale_external_validation",
+      "biological_interpretability",
+      "methodological_novelty",
+      "reproducibility_code_pipeline",
+      "overfitting_risk",
+      "translational_potential"
+    ],
+    "deductions": [
+      {
+        "rule": "single_database_no_external_validation",
+        "description": "只有单数据库、无外部验证",
+        "penalty": 0.7
+      },
+      {
+        "rule": "high_auc_weak_mechanism",
+        "description": "ROC/AUC好看但机制解释弱",
+        "penalty": 0.4
+      },
+      {
+        "rule": "docking_only_no_wetlab_validation",
+        "description": "仅分子对接/MD，无细胞或组织验证",
+        "penalty": 0.5
+      },
+      {
+        "rule": "pan_cancer_unfocused_storyline",
+        "description": "泛癌分析堆砌但主线不聚焦",
+        "penalty": 0.3
+      }
+    ]
+  }
+}
