@@ -16,7 +16,7 @@ DEFAULT_SOURCES = ["pubmed", "europe_pmc", "biorxiv", "medrxiv", "crossref", "op
 # ANSI colors
 RESET = "[0m"
 GREEN = "[32m"
-BLUE = "[34m"
+SOFT_CYAN = "[96m"
 CYAN = "[36m"
 YELLOW = "[33m"
 BOLD = "[1m"
@@ -118,9 +118,9 @@ def format_current_config(default: str) -> str:
 
 
 def prompt_with_default(label: str, default: str) -> str:
-    print(f"{BLUE}{label}{RESET}")
+    print(f"{SOFT_CYAN}{label}{RESET}")
     print(format_current_config(default))
-    value = input(f"{BLUE}请输入（直接回车表示保持不变）: {RESET}").strip()
+    value = input(f"{SOFT_CYAN}请输入（直接回车表示保持不变）: {RESET}").strip()
     return value or default
 
 
