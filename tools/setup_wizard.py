@@ -13,6 +13,14 @@ PROMPT_START = "<!-- BPC_PROMPT_OVERRIDE_START -->"
 PROMPT_END = "<!-- BPC_PROMPT_OVERRIDE_END -->"
 DEFAULT_SOURCES = ["pubmed", "europe_pmc", "biorxiv", "medrxiv", "crossref", "openalex", "semantic_scholar"]
 
+# ANSI colors
+RESET = "[0m"
+GREEN = "[32m"
+BLUE = "[34m"
+CYAN = "[36m"
+YELLOW = "[33m"
+BOLD = "[1m"
+
 
 def parse_csv(value: str) -> List[str]:
     return [x.strip() for x in value.split(",") if x.strip()]
@@ -105,8 +113,14 @@ def update_agent_prompt(agent_md: Path, prompt_text: str) -> None:
     agent_md.write_text(content, encoding="utf-8")
 
 
+def format_current_config(default: str) -> str:
+    return f"{CYAN}当前已配置内容：{RESET}\n{YELLOW}{default}{RESET}"
+
+
 def prompt_with_default(label: str, default: str) -> str:
-    value = input(f"{label} [{default}]: ").strip()
+    print(f"{BLUE}{label}{RESET}")
+    print(format_current_config(default))
+    value = input(f"{BLUE}请输入（直接回车表示保持不变）: {RESET}").strip()
     return value or default
 
 
@@ -119,12 +133,12 @@ def run_onboard(agent_root: Path) -> None:
         if not path.exists():
             raise FileNotFoundError(f"Required file not found: {path}")
 
-    print("\n🧭 BioPaperClaw Setup Wizard (bpc onboard)")
-    print(f"Agent root: {agent_root}\n")
+    print(f"\n{GREEN}{BOLD}🧭 BioPaperClaw Setup Wizard (bpc onboard){RESET}")
+    print(f"{GREEN}Agent root: {agent_root}{RESET}\n")
 
     strategy = read_default_strategy(medical_file)
 
-    print("1) 配置医学检索关键词（DEFAULT_STRATEGY）")
+    print(f"{GREEN}{BOLD}1) 配置医学检索关键词（DEFAULT_STRATEGY）{RESET}")
     strategy["topic_terms"] = parse_csv(prompt_with_default("- topic_terms (逗号分隔)", ",".join(strategy.get("topic_terms", []))))
     strategy["mesh_terms"] = parse_csv(prompt_with_default("- mesh_terms (逗号分隔)", ",".join(strategy.get("mesh_terms", []))))
     synonyms_default = ";".join("|".join(g) for g in strategy.get("synonym_groups", []))
@@ -134,20 +148,20 @@ def run_onboard(agent_root: Path) -> None:
     strategy["exclude_terms"] = parse_csv(prompt_with_default("- exclude_terms (逗号分隔)", ",".join(strategy.get("exclude_terms", []))))
     replace_dict_assignment(medical_file, "DEFAULT_STRATEGY", strategy)
 
-    print("\n2) 配置每日检索数据源（daily_paper_search.py）")
+    print(f"\n{GREEN}{BOLD}2) 配置每日检索数据源（daily_paper_search.py）{RESET}")
     source_default = ",".join(DEFAULT_SOURCES)
     source_input = prompt_with_default("- sources (逗号分隔)", source_default)
     sources = parse_csv(source_input)
     update_daily_sources(daily_file, sources)
 
-    print("\n3) 配置 AGENT 提示词可编辑区")
+    print(f"\n{GREEN}{BOLD}3) 配置 AGENT 提示词可编辑区{RESET}")
     prompt_text = prompt_with_default(
         "- 输入给 Agent 的提示词补充（可写多句）",
         "请优先解释检索策略、输出可追溯来源，并在不确定时明确说明假设。",
     )
     update_agent_prompt(agent_md, prompt_text)
 
-    print("\n✅ 初始化完成！已更新：")
+    print(f"\n{GREEN}{BOLD}✅ 初始化完成！已更新：{RESET}")
     print(f"- {medical_file}")
     print(f"- {daily_file}")
     print(f"- {agent_md}")
